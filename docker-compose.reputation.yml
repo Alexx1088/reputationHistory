@@ -1,0 +1,54 @@
+#version: "3.8"
+services:
+  reputation_postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: reputation
+    volumes:
+      - rep_pgdata:/var/lib/postgresql/data
+    networks:
+      - microservice-net
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U user -d reputation"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  reputationhistory:
+    build:
+      context: .
+      network: host
+    depends_on:
+      reputation_postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://user:password@reputation_postgres:5432/reputation?sslmode=disable
+      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_GROUP_ID=reputation-history-v1
+      - KAFKA_TOPIC=user.reputation.entry.v1
+    networks:
+      - microservice-net
+    restart: unless-stopped
+  adminer_backend:
+    image: michalhosna/adminer
+    ports:
+      - "8050:8080"
+    depends_on:
+      - reputation_postgres
+    environment:
+      ADMINER_DB: reputation_history
+      ADMINER_PASSWORD: password
+      ADMINER_SERVER: reputation_history_1
+      ADMINER_USERNAME: user
+      ADMINER_AUTOLOGIN: 1
+    container_name: reputation_history_adm
+    networks:
+      - microservice-net
+volumes:
+  rep_pgdata:
+
+networks:
+  microservice-net:
+    external: true

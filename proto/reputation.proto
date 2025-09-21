@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package reputation;
+
+option go_package = "github.com/Alexx1088/reputationhistory/proto/reputationpb";
+
+service ReputationService {
+  rpc AddEntry(AddEntryRequest) returns (AddEntryResponse);
+}
+
+message AddEntryRequest {
+  string user_id = 1;
+  string action = 2;
+  int32 score_change = 3;
+}
+
+message AddEntryResponse {
+  bool success = 1;
+}
